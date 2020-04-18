@@ -152,7 +152,7 @@ class CacheRegion(object):
                 if not redis.exists(cache_key):
                     redis.srem(cache_keyset_key, key)
                 else:
-                    redis.hset(cache_key, 'created', new_created)
+                    redis.hset(cache_key, b'created', new_created)
 
     @classmethod
     def load(cls, region, namespace, key, regenerate=True, callable=None,
@@ -211,14 +211,14 @@ class CacheRegion(object):
             result = redis.hgetall(keys.redis_key)
 
         expired = True
-        if result and now - float(result['created']) < expires:
+        if result and now - float(result[b'created']) < expires:
             expired = False
 
         if (result and not regenerate) or not expired:
             # We have a result and were told not to regenerate so
             # we always return it immediately regardless of expiration,
             # or its not expired
-            return cPickle.loads(result['value'])
+            return cPickle.loads(result[b'value'])
 
         if not result and not regenerate:
             # No existing value, but we were told not to regenerate it and
@@ -226,7 +226,7 @@ class CacheRegion(object):
             return NoneMarker
 
         # Don't wait for the lock if we have an old value
-        if result and 'value' in result:
+        if result and b'value' in result:
             timeout = 0
         else:
             timeout = 60 * 60
@@ -236,15 +236,15 @@ class CacheRegion(object):
                 # Did someone else already create it?
                 result = redis.hgetall(keys.redis_key)
                 now = time.time()
-                if result and 'value' in result and \
-                   now - float(result['created']) < expires:
-                    return cPickle.loads(result['value'])
+                if result and b'value' in result and \
+                   now - float(result[b'created']) < expires:
+                    return cPickle.loads(result[b'value'])
 
                 value = callable()
 
                 p = redis.pipeline(transaction=True)
-                p.hmset(keys.redis_key, {'created': now,
-                                    'value': cPickle.dumps(value)})
+                p.hmset(keys.redis_key, {b'created': now,
+                                    b'value': cPickle.dumps(value)})
                 p.expire(keys.redis_key, redis_expiration)
                 cls._add_tracking(p, region, namespace, key)
                 if statistics:
@@ -254,7 +254,7 @@ class CacheRegion(object):
                     p.execute()
         except LockTimeout:
             if result:
-                return cPickle.loads(result['value'])
+                return cPickle.loads(result[b'value'])
             else:
                 # log some sort of error?
                 return NoneMarker
@@ -332,13 +332,13 @@ def invalidate_callable(callable, *args):
         except UnicodeEncodeError:
             cache_key = " ".join(map(unicode, args))
         redis.hset('retools:%s:%s:%s' % (region, namespace, cache_key),
-                   'created', new_created)
+                   b'created', new_created)
     else:
         cache_keyset_key = 'retools:%s:%s:keys' % (region, namespace)
         keys = set(['']) | redis.smembers(cache_keyset_key)
         p = redis.pipeline(transaction=True)
         for key in keys:
-            p.hset('retools:%s:%s:%s' % (region, namespace, key), 'created',
+            p.hset('retools:%s:%s:%s' % (region, namespace, key), b'created',
                    new_created)
         p.execute()
     return None

@@ -1,4 +1,4 @@
-__version__ = '0.4.1'
+__version__ = '0.5.1'
 
 import os
 
@@ -22,6 +22,7 @@ setup(name='retools',
       url="http://readthedocs.org/docs/retools/",
       license="MIT",
       packages=find_packages(),
+      use_2to3=True,
       test_suite="retools.tests",
       include_package_data=True,
       zip_safe=False,
@@ -29,7 +30,7 @@ setup(name='retools',
                        'simplejson'],
       install_requires=[
           "setproctitle>=1.1.2",
-          "redis>=2.7.3",
+          "redis>=2.9.0",
       ],
       entry_points="""
       [console_scripts]
